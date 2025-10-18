@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,18 +19,24 @@ interface Listing {
   description: string;
   price: number;
   type: 'rent' | 'sale';
-  category_name: string;
-  images: string[];
+  category_name?: string;
+  category_id?: number;
+  user_id?: number;
+  images?: string[];
   location: string;
-  condition: string;
-  year: number;
-  brand: string;
-  model: string;
-  specifications: any;
-  view_count: number;
-  created_at: string;
-  user_name: string;
-  user_phone: string;
+  condition?: string;
+  year?: number;
+  brand?: string;
+  model?: string;
+  specifications?: Record<string, unknown>;
+  view_count?: number;
+  views_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  user_name?: string;
+  user_phone?: string;
+  is_active?: boolean;
+  is_featured?: boolean;
   is_favorite?: boolean;
 }
 
@@ -50,12 +56,6 @@ const ProductDetail = () => {
   });
 
   useEffect(() => {
-    if (id) {
-      loadListing();
-    }
-  }, [id]);
-
-  useEffect(() => {
     if (user) {
       setInquiryForm(prev => ({
         ...prev,
@@ -66,7 +66,7 @@ const ProductDetail = () => {
     }
   }, [user]);
 
-  const loadListing = async () => {
+  const loadListing = useCallback(async () => {
     if (!id) return;
     
     setLoading(true);
@@ -86,7 +86,13 @@ const ProductDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    if (id) {
+      loadListing();
+    }
+  }, [id, loadListing]);
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated) {
@@ -258,7 +264,7 @@ const ProductDetail = () => {
                       </div>
                       <div>
                         <span className="font-medium">تعداد بازدید:</span>
-                        <span className="mr-2">{listing.view_count}</span>
+                        <span className="mr-2">{(listing as any).views_count ?? listing.view_count ?? 0}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -287,8 +293,12 @@ const ProductDetail = () => {
                       className="w-full" 
                       size="lg"
                       onClick={() => {
-                        // In a real app, this would open a contact modal or redirect to contact
-                        toast.info('برای تماس با فروشنده، از فرم زیر استفاده کنید');
+                        if (listing.user_phone) {
+                          const tel = String(listing.user_phone).replace(/\s+/g, '');
+                          window.location.href = `tel:${tel}`;
+                        } else {
+                          toast.info('شماره فروشنده موجود نیست');
+                        }
                       }}
                     >
                       <Phone className="w-4 h-4 ml-2" />
@@ -319,7 +329,16 @@ const ProductDetail = () => {
               <CardContent>
                 <div className="space-y-2">
                   <p className="font-medium">{listing.user_name}</p>
-                  <p className="text-sm text-muted-foreground">{listing.user_phone}</p>
+                  {listing.user_phone ? (
+                    <a
+                      href={`tel:${String(listing.user_phone).replace(/\s+/g, '')}`}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      {listing.user_phone}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">شماره تماس موجود نیست</p>
+                  )}
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Calendar className="w-4 h-4 ml-1" />
                     عضو از {formatDate(listing.created_at)}

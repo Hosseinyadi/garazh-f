@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +28,7 @@ interface Category {
 
 const PostAd = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -56,6 +57,15 @@ const PostAd = () => {
     }
     loadCategories();
   }, [isAuthenticated, navigate]);
+
+  // Preselect type from query (?type=rent|sale)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const typeParam = params.get('type');
+    if (typeParam === 'rent' || typeParam === 'sale') {
+      setForm(prev => ({ ...prev, type: typeParam as 'rent' | 'sale' }));
+    }
+  }, [location.search]);
 
   const loadCategories = async () => {
     try {

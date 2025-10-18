@@ -27,7 +27,6 @@ class ShopErrorBoundary extends React.Component<{ children: React.ReactNode }, {
 
   componentDidCatch(error: unknown, info: unknown) {
     // Surface error to console for debugging
-    // eslint-disable-next-line no-console
     console.error('Shop page crashed:', error, info);
   }
 

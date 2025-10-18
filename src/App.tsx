@@ -18,6 +18,10 @@ import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DevTools from "./pages/DevTools";
+import AdminLogin from "./pages/AdminLogin";
+import TestAPI from "./pages/TestAPI";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -36,15 +40,19 @@ const App = () => (
             <Route path="/sale" element={<SaleAds />} />
             <Route path="/rent/:id" element={<ProductDetail />} />
             <Route path="/sale/:id" element={<ProductDetail />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/post-ad" element={<ProtectedRoute><PostAd /></ProtectedRoute>} />
-            <Route path="/auth" element={<Auth />} />
             <Route path="/seller" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/parts-services" element={<Search />} />
             <Route path="/blog" element={<Search />} />
+            <Route path="/dev-tools" element={<DevTools />} />
+            <Route path="/test-api" element={<TestAPI />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

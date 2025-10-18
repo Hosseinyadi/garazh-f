@@ -4,16 +4,20 @@ import apiService from '../services/api';
 interface User {
   id: number;
   phone: string;
-  name: string;
+  name?: string;
   email?: string;
   avatar?: string;
-  is_verified: boolean;
+  is_admin?: boolean;
+  is_verified?: boolean;
+  created_at?: string;
 }
 
 interface Admin {
   id: number;
   username: string;
-  role: string;
+  name: string;
+  is_super_admin: boolean;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -86,10 +90,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         success: response.success,
         message: response.message
       };
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        message: error.message || 'خطا در ارسال کد تایید'
+        message: error instanceof Error ? error.message : 'خطا در ارسال کد تایید'
       };
     }
   };
@@ -111,10 +115,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           message: response.message || 'خطا در ورود'
         };
       }
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        message: error.message || 'خطا در ورود'
+        message: error instanceof Error ? error.message : 'خطا در ورود'
       };
     }
   };
@@ -136,10 +140,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           message: response.message || 'خطا در ورود ادمین'
         };
       }
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        message: error.message || 'خطا در ورود ادمین'
+        message: error instanceof Error ? error.message : 'خطا در ورود ادمین'
       };
     }
   };
@@ -160,10 +164,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           message: response.message || 'خطا در به‌روزرسانی پروفایل'
         };
       }
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        message: error.message || 'خطا در به‌روزرسانی پروفایل'
+        message: error instanceof Error ? error.message : 'خطا در به‌روزرسانی پروفایل'
       };
     }
   };

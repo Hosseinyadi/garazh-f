@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Wrench } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
@@ -47,6 +47,15 @@ const Header = () => {
 
           {/* Simple Actions */}
           <div className="hidden md:flex items-center space-x-3 space-x-reverse">
+            {/* Dev Tools Button (only in development) */}
+            {process.env.NODE_ENV !== 'production' && (
+              <Link to="/dev-tools">
+                <Button variant="outline" size="sm" className="text-sm border-dashed border-orange-400 text-orange-600 hover:bg-orange-50">
+                  <Wrench className="w-4 h-4 ml-2" />
+                  ابزار توسعه
+                </Button>
+              </Link>
+            )}
             <NotificationBell />
             {isAuthenticated ? (
               <>

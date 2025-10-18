@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -56,11 +56,6 @@ const SaleAds = () => {
     loadCategories();
   }, []);
 
-  // Load listings when filters change
-  useEffect(() => {
-    loadListings();
-  }, [searchQuery, selectedCategory, selectedProvince, currentPage]);
-
   const loadCategories = async () => {
     try {
       const response = await apiService.getCategories();
@@ -72,10 +67,19 @@ const SaleAds = () => {
     }
   };
 
-  const loadListings = async () => {
+  const loadListings = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = {
+      const params: {
+        type: 'sale';
+        page: number;
+        limit: number;
+        search?: string;
+        category?: number;
+        min_price?: number;
+        max_price?: number;
+        location?: string;
+      } = {
         type: 'sale',
         page: currentPage,
         limit: 12
@@ -96,7 +100,12 @@ const SaleAds = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchQuery, selectedCategory, selectedProvince]);
+
+  // Load listings when filters change
+  useEffect(() => {
+    loadListings();
+  }, [loadListings]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -298,7 +307,7 @@ const SaleAds = () => {
                             </span>
                             <div className="flex items-center text-sm text-muted-foreground">
                               <Eye className="w-4 h-4 ml-1" />
-                              {listing.view_count}
+                              {typeof (listing as any).views_count === 'number' ? (listing as any).views_count : listing.view_count}
                             </div>
                           </div>
 
@@ -321,6 +330,11 @@ const SaleAds = () => {
                               )}
                             </div>
                           )}
+                        </div>
+                        <div className="pt-2">
+                          <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); handleListingClick(listing); }}>
+                            مشاهده جزئیات
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

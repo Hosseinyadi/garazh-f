@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,18 +62,7 @@ const UserDashboard = () => {
     phone: user?.phone || '',
   });
 
-  useEffect(() => {
-    if (user) {
-      setProfileForm({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      });
-      loadUserData();
-    }
-  }, [user]);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     setLoading(true);
     try {
       // Load user's listings
@@ -96,7 +85,18 @@ const UserDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+      loadUserData();
+    }
+  }, [user, loadUserData]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();

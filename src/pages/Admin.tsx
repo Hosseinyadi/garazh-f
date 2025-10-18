@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,31 +31,38 @@ interface Listing {
   description: string;
   price: number;
   type: 'rent' | 'sale';
-  category_name: string;
-  images: string[];
+  category_name?: string;
+  category_id?: number;
+  user_id?: number;
+  images?: string[];
   location: string;
-  condition: string;
-  year: number;
-  brand: string;
-  model: string;
-  view_count: number;
-  created_at: string;
-  user_name: string;
-  user_phone: string;
-  is_active: boolean;
-  is_featured: boolean;
-  total_views: number;
+  condition?: string;
+  year?: number;
+  brand?: string;
+  model?: string;
+  view_count?: number;
+  views_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  user_name?: string;
+  user_phone?: string;
+  is_active?: boolean;
+  is_featured?: boolean;
+  total_views?: number;
+  specifications?: Record<string, unknown>;
 }
 
 interface User {
   id: number;
   phone: string;
-  name: string;
-  email: string;
-  is_verified: boolean;
-  created_at: string;
-  listings_count: number;
-  favorites_count: number;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  is_admin?: boolean;
+  is_verified?: boolean;
+  created_at?: string;
+  listings_count?: number;
+  favorites_count?: number;
 }
 
 interface DashboardStats {
@@ -79,16 +86,6 @@ const Admin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    if (activeTab === 'dashboard') {
-      loadDashboard();
-    } else if (activeTab === 'listings') {
-      loadListings();
-    } else if (activeTab === 'users') {
-      loadUsers();
-    }
-  }, [activeTab, searchQuery, statusFilter, currentPage]);
-
   const loadDashboard = async () => {
     setLoading(true);
     try {
@@ -104,10 +101,15 @@ const Admin = () => {
     }
   };
 
-  const loadListings = async () => {
+  const loadListings = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = {
+      const params: {
+        page: number;
+        limit: number;
+        search?: string;
+        status?: 'active' | 'inactive';
+      } = {
         page: currentPage,
         limit: 20
       };
@@ -127,9 +129,9 @@ const Admin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchQuery, statusFilter]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiService.getAdminUsers({
@@ -146,7 +148,17 @@ const Admin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      loadDashboard();
+    } else if (activeTab === 'listings') {
+      loadListings();
+    } else if (activeTab === 'users') {
+      loadUsers();
+    }
+  }, [activeTab, searchQuery, statusFilter, currentPage, loadListings, loadUsers]);
 
   const handleListingStatusChange = async (id: number, isActive: boolean) => {
     try {

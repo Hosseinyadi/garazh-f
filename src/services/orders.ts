@@ -1,6 +1,6 @@
 import { notifyNewOrder, notifyNewInquiry } from './notifications';
 // Use direct fetch against backend API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 export interface Order {
   id: string;
@@ -38,12 +38,14 @@ export async function createOrder(orderData: OrderCreate): Promise<Order> {
     const order = data.data as Order;
 
     // Get ad details for notification
-    let ad: any = null;
+    let ad: { title: string } | null = null;
     try {
       const lr = await fetch(`${API_BASE_URL}/listings/${encodeURIComponent(orderData.ad_id)}`);
       const ld = await lr.json();
       if (lr.ok && ld.success) ad = ld.data?.listing;
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch ad details:', err);
+    }
 
     // Notify admins about new order
     if (ad) {
@@ -140,12 +142,14 @@ export async function createInquiry(inquiryData: Omit<Inquiry, 'id' | 'status' |
     const inquiry = d.data as Inquiry;
 
     // Get ad details for notification
-    let ad: any = null;
+    let ad: { title: string } | null = null;
     try {
       const lr = await fetch(`${API_BASE_URL}/listings/${encodeURIComponent(inquiryData.ad_id)}`);
       const ld = await lr.json();
       if (lr.ok && ld.success) ad = ld.data?.listing;
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch ad details:', err);
+    }
 
     // Send notification
     if (ad) {

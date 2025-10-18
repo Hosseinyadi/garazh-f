@@ -1,13 +1,80 @@
 // Bil Flow API Service
 // Replaces Supabase with custom API calls
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-interface ApiResponse<T = any> {
+interface User {
+  id: number;
+  phone: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  is_admin?: boolean;
+  created_at?: string;
+}
+
+interface Admin {
+  id: number;
+  username: string;
+  name: string;
+  is_super_admin: boolean;
+}
+
+interface Listing {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  type: 'rent' | 'sale';
+  category_id: number;
+  user_id: number;
+  images?: string[];
+  location: string;
+  condition?: string;
+  year?: number;
+  brand?: string;
+  model?: string;
+  specifications?: Record<string, unknown>;
+  is_active?: boolean;
+  is_featured?: boolean;
+  views_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id?: number;
+  description?: string;
+  icon?: string;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+interface DashboardStats {
+  total_listings: number;
+  active_listings: number;
+  total_users: number;
+  total_views: number;
+}
+
+interface ViewStat {
+  date: string;
+  views: number;
+}
+
+interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
-  errors?: any[];
+  errors?: string[];
 }
 
 class ApiService {
@@ -58,8 +125,12 @@ class ApiService {
     };
 
     try {
+      console.log('🔵 API Request:', url, config);
       const response = await fetch(url, config);
+      console.log('🟢 API Response Status:', response.status, response.statusText);
+      
       const data = await response.json();
+      console.log('📦 API Response Data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'خطا در درخواست');
@@ -67,7 +138,16 @@ class ApiService {
 
       return data;
     } catch (error) {
-      console.error('API Request Error:', error);
+      if (error instanceof Error) {
+        console.error('❌ API Request Error:', {
+          message: error.message,
+          name: error.name,
+          url: url,
+          stack: error.stack
+        });
+      } else {
+        console.error('❌ API Request Unknown Error:', error);
+      }
       throw error;
     }
   }
@@ -81,7 +161,7 @@ class ApiService {
   }
 
   async verifyOTP(phone: string, otp: string, name?: string): Promise<ApiResponse<{
-    user: any;
+    user: User;
     token: string;
   }>> {
     const response = await this.request('/auth/verify-otp', {
@@ -97,7 +177,7 @@ class ApiService {
   }
 
   async adminLogin(username: string, password: string): Promise<ApiResponse<{
-    admin: any;
+    admin: Admin;
     token: string;
   }>> {
     const response = await this.request('/auth/admin/login', {
@@ -112,7 +192,7 @@ class ApiService {
     return response;
   }
 
-  async getProfile(): Promise<ApiResponse<{ user: any }>> {
+  async getProfile(): Promise<ApiResponse<{ user: User }>> {
     return this.request('/auth/profile');
   }
 
@@ -120,7 +200,7 @@ class ApiService {
     name?: string;
     email?: string;
     avatar?: string;
-  }): Promise<ApiResponse<{ user: any }>> {
+  }): Promise<ApiResponse<{ user: User }>> {
     return this.request('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -138,8 +218,8 @@ class ApiService {
     max_price?: number;
     location?: string;
   } = {}): Promise<ApiResponse<{
-    listings: any[];
-    pagination: any;
+    listings: Listing[];
+    pagination: Pagination;
   }>> {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -151,7 +231,7 @@ class ApiService {
     return this.request(`/listings?${searchParams.toString()}`);
   }
 
-  async getListing(id: string | number): Promise<ApiResponse<{ listing: any }>> {
+  async getListing(id: string | number): Promise<ApiResponse<{ listing: Listing }>> {
     return this.request(`/listings/${id}`);
   }
 
@@ -167,15 +247,15 @@ class ApiService {
     year?: number;
     brand?: string;
     model?: string;
-    specifications?: any;
-  }): Promise<ApiResponse<{ listing: any }>> {
+    specifications?: Record<string, unknown>;
+  }): Promise<ApiResponse<{ listing: Listing }>> {
     return this.request('/listings', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateListing(id: string | number, data: any): Promise<ApiResponse<{ listing: any }>> {
+  async updateListing(id: string | number, data: Partial<Listing>): Promise<ApiResponse<{ listing: Listing }>> {
     return this.request(`/listings/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -188,12 +268,12 @@ class ApiService {
     });
   }
 
-  async getCategories(): Promise<ApiResponse<{ categories: any[] }>> {
+  async getCategories(): Promise<ApiResponse<{ categories: Category[] }>> {
     return this.request('/listings/categories/all');
   }
 
   // Favorites methods
-  async getFavorites(): Promise<ApiResponse<{ favorites: any[] }>> {
+  async getFavorites(): Promise<ApiResponse<{ favorites: Listing[] }>> {
     return this.request('/favorites');
   }
 
@@ -219,10 +299,10 @@ class ApiService {
 
   // Admin methods
   async getAdminDashboard(): Promise<ApiResponse<{
-    stats: any;
-    recent_listings: any[];
-    top_categories: any[];
-    daily_stats: any[];
+    stats: DashboardStats;
+    recent_listings: Listing[];
+    top_categories: Category[];
+    daily_stats: ViewStat[];
   }>> {
     return this.request('/admin/dashboard');
   }
@@ -234,8 +314,8 @@ class ApiService {
     status?: 'active' | 'inactive';
     search?: string;
   } = {}): Promise<ApiResponse<{
-    listings: any[];
-    pagination: any;
+    listings: Listing[];
+    pagination: Pagination;
   }>> {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -248,8 +328,8 @@ class ApiService {
   }
 
   async getAdminListing(id: string | number): Promise<ApiResponse<{
-    listing: any;
-    view_stats: any[];
+    listing: Listing;
+    view_stats: ViewStat[];
   }>> {
     return this.request(`/admin/listings/${id}`);
   }
@@ -257,7 +337,7 @@ class ApiService {
   async updateListingStatus(
     id: string | number,
     data: { is_active?: boolean; is_featured?: boolean }
-  ): Promise<ApiResponse<{ listing: any }>> {
+  ): Promise<ApiResponse<{ listing: Listing }>> {
     return this.request(`/admin/listings/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -274,8 +354,8 @@ class ApiService {
     page?: number;
     limit?: number;
   } = {}): Promise<ApiResponse<{
-    users: any[];
-    pagination: any;
+    users: User[];
+    pagination: Pagination;
   }>> {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -288,11 +368,11 @@ class ApiService {
   }
 
   // Locations
-  async getProvinces(): Promise<ApiResponse<{ provinces: any[] }>> {
+  async getProvinces(): Promise<ApiResponse<{ provinces: { id: number; name: string }[] }>> {
     return this.request('/locations/provinces');
   }
 
-  async getCities(provinceId: number): Promise<ApiResponse<{ cities: any[] }>> {
+  async getCities(provinceId: number): Promise<ApiResponse<{ cities: { id: number; name: string; province_id: number }[] }>> {
     return this.request(`/locations/cities/${provinceId}`);
   }
 

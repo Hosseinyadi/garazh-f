@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -56,11 +56,6 @@ const RentAds = () => {
     loadCategories();
   }, []);
 
-  // Load listings when filters change
-  useEffect(() => {
-    loadListings();
-  }, [searchQuery, selectedCategory, selectedProvince, currentPage]);
-
   const loadCategories = async () => {
     try {
       const response = await apiService.getCategories();
@@ -72,10 +67,19 @@ const RentAds = () => {
     }
   };
 
-  const loadListings = async () => {
+  const loadListings = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = {
+      const params: {
+        type: 'rent';
+        page: number;
+        limit: number;
+        search?: string;
+        category?: number;
+        min_price?: number;
+        max_price?: number;
+        location?: string;
+      } = {
         type: 'rent',
         page: currentPage,
         limit: 12
@@ -96,7 +100,12 @@ const RentAds = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchQuery, selectedCategory, selectedProvince]);
+
+  // Load listings when filters change
+  useEffect(() => {
+    loadListings();
+  }, [loadListings]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -187,6 +196,13 @@ const RentAds = () => {
                 <Button onClick={handleSearch} className="btn-primary">
                   <SearchIcon className="w-4 h-4 ml-2" />
                   جستجو
+                </Button>
+              </div>
+
+              {/* Post Rent Ad */}
+              <div className="mt-4 flex justify-end">
+                <Button onClick={() => navigate('/post-ad?type=rent')} className="btn-primary">
+                  ثبت آگهی اجاره
                 </Button>
               </div>
 
@@ -298,7 +314,7 @@ const RentAds = () => {
                             </span>
                             <div className="flex items-center text-sm text-muted-foreground">
                               <Eye className="w-4 h-4 ml-1" />
-                              {listing.view_count}
+                              {typeof (listing as any).views_count === 'number' ? (listing as any).views_count : listing.view_count}
                             </div>
                           </div>
 
@@ -321,6 +337,11 @@ const RentAds = () => {
                               )}
                             </div>
                           )}
+                        </div>
+                        <div className="pt-2">
+                          <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); handleListingClick(listing); }}>
+                            مشاهده جزئیات
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

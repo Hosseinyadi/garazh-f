@@ -64,7 +64,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
     errors.push('رمز عبور باید حداقل یک عدد داشته باشد');
   }
 
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push('رمز عبور باید حداقل یک کاراکتر خاص داشته باشد');
   }
 
@@ -163,13 +163,13 @@ export const sanitizeSqlInput = (input: string): string => {
 
   return input
     .replace(/['";\\]/g, '') // Remove quotes and semicolons
-    .replace(/--/g, '') // Remove SQL comments
-    .replace(/\/\*.*?\*\//g, '') // Remove multi-line comments
+    .replace(/--+/g, '') // Remove SQL comments
+    .replace(/\/\*.*?\*\//gs, '') // Remove multi-line comments
     .trim();
 };
 
 // Log security events (client-side)
-export const logSecurityEvent = (event: string, details: any): void => {
+export const logSecurityEvent = (event: string, details: Record<string, unknown>): void => {
   console.warn(`[SECURITY] ${event}:`, details);
 
   // In production, this should send to a logging service
