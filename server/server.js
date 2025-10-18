@@ -32,16 +32,16 @@ if ((process.env.NODE_ENV || '').toLowerCase() === 'production' && !process.env.
 if (morgan) {
     app.use(morgan((process.env.NODE_ENV || 'development') === 'production' ? 'combined' : 'dev'));
 }
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
-        },
-    },
-}));
+// app.use(helmet({
+//     contentSecurityPolicy: {
+//         directives: {
+//             defaultSrc: ["'self'"],
+//             styleSrc: ["'self'", "'unsafe-inline'"],
+//             scriptSrc: ["'self'"],
+//             imgSrc: ["'self'", "data:", "https:"],
+//         },
+//     },
+// }));
 
 if (compression) {
     app.use(compression());
@@ -113,6 +113,11 @@ app.use('/api/auth/send-otp', otpLimiter);
 app.use('/api/auth/verify-otp', otpLimiter);
 app.use('/api/auth/admin/login', loginLimiter);
 
+const path = require('path');
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../dist')));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
@@ -135,12 +140,9 @@ app.use('/api/inquiries', inquiryRoutes);
 // Static files for uploaded images
 app.use('/uploads', express.static('uploads'));
 
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'مسیر یافت نشد'
-    });
+// Handles any requests that don't match the ones above
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
 // Global error handler
@@ -195,7 +197,7 @@ process.on('SIGINT', () => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Bil Flow Server running on port ${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);

@@ -17,49 +17,82 @@ router.post('/send-otp', [
         })
         .withMessage('شماره موبایل معتبر نیست')
 ], async (req, res) => {
+    console.log('[DEBUG] /send-otp route started.');
+    console.log('[DEBUG] Request Body:', JSON.stringify(req.body)); // Log the entire body
+
+    const { phone } = req.body;
+    if (!phone) {
+        console.error('[ERROR] Phone number is missing from the request body.');
+        return res.status(400).json({
+            success: false,
+            message: 'شماره موبایل در درخواست وجود ندارد'
+        });
+    }
+
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.log('[DEBUG] Validation failed.', errors.array());
             return res.status(400).json({
                 success: false,
                 message: 'اطلاعات ورودی نامعتبر است',
                 errors: errors.array()
             });
         }
+        console.log('[DEBUG] Validation passed.');
 
         const { phone } = req.body;
         const cleanPhone = smsService.cleanPhoneNumber(phone);
+        console.log(`[DEBUG] Phone number cleaned: ${cleanPhone}`);
 
         // Generate OTP
         const otpCode = smsService.generateOTP();
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+        console.log(`[DEBUG] OTP generated: ${otpCode}`);
 
         // Save OTP to database
+        console.log('[DEBUG] Attempting to save OTP to database...');
         await dbHelpers.run(
             'INSERT INTO otp_verifications (phone, otp_code, expires_at) VALUES (?, ?, ?)',
             [cleanPhone, otpCode, expiresAt]
         );
+        console.log('[DEBUG] OTP saved to database successfully.');
 
         // Send SMS (with mock fallback for local dev)
-        const smsResult = await smsService.sendOTP(cleanPhone, otpCode);
         const allowMock = String(process.env.OTP_MOCK ?? 'false').toLowerCase() === 'true';
 
-        if (smsResult.success || allowMock) {
-            if (!smsResult.success) {
-                console.log(`[MOCK OTP] to ${cleanPhone}: ${otpCode}`);
-            }
+        if (allowMock) {
+            console.log(`[MOCK OTP] Code for ${cleanPhone} is: ${otpCode}`);
             return res.json({
                 success: true,
-                message: 'کد تایید ارسال شد',
+                message: 'کد تایید (آزمایشی) ارسال شد',
                 expiresIn: 300 // 5 minutes in seconds
             });
         }
 
-        return res.status(500).json({
-            success: false,
-            message: 'خطا در ارسال پیامک',
-            error: smsResult.error
-        });
+        // Production: attempt to send real SMS
+        try {
+            const smsResult = await smsService.sendOTP(cleanPhone, otpCode);
+            if (smsResult.success) {
+                return res.json({
+                    success: true,
+                    message: 'کد تایید ارسال شد',
+                    expiresIn: 300
+                });
+            }
+            // Explicitly return error if SMS sending fails in production
+            return res.status(500).json({
+                success: false,
+                message: 'خطا در ارسال پیامک',
+                error: smsResult.error || 'Failed to send SMS'
+            });
+        } catch (smsError) {
+            console.error('SMS Service Error:', smsError);
+            return res.status(500).json({
+                success: false,
+                message: 'خطای داخلی در سرویس پیامک'
+            });
+        }
 
     } catch (error) {
         console.error('Send OTP error:', error);

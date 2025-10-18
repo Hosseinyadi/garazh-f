@@ -69,7 +69,7 @@ const Auth: React.FC = () => {
     
     setLoading(true);
     try {
-      const result = await sendOTP(formattedPhone);
+      const result = await sendOTP(formattedPhone, state.name);
       if (result.success) {
         setOtpSent(true);
         setState(prev => ({ ...prev, step: 'otp', phone: formattedPhone }));
