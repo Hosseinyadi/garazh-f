@@ -82,22 +82,36 @@ const loginLimiter = rateLimit({
 });
 
 // CORS configuration (env-driven)
-const corsOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+// server/server.js  — قطعه CORS پیشنهادی
+const cors = require('cors');
 
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // e.g., curl/postman
-        if (corsOrigins.includes(origin)) return callback(null, true);
-        return callback(new Error('CORS blocked for origin: ' + origin), false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    optionsSuccessStatus: 204
-}));
+// بخوان FRONTEND_URL از محیط؛ اگر نباشه از localhost برای dev استفاده کن
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  frontendUrl
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // اگر درخواست بدون origin (مثلاً از curl یا same-origin) بود هم اجازه بده
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      // برای عیب‌یابی لاگ هم چاپ کن
+      console.warn('CORS blocked for origin:', origin);
+      return callback(new Error('CORS blocked for origin: ' + origin));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
 
 // Body parsing middleware
 const BODY_LIMIT = process.env.BODY_LIMIT || '10mb';
